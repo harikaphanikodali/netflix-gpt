@@ -1,14 +1,20 @@
 import { useRef, useState } from "react";
 import Header from "./Header";
 import { checkValidData } from "../utils/validate";
-import { createUserWithEmailAndPassword , signInWithEmailAndPassword} from "firebase/auth";
+import { createUserWithEmailAndPassword ,updateProfile, signInWithEmailAndPassword} from "firebase/auth";
 import {auth} from "../utils/firebase"
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
 
 const Login = () => {
     const [isSignInForm, setSignInForm] = useState(true);
-    const [errorMessage, setErrorMessage]= useState(null)
+    const [errorMessage, setErrorMessage]= useState(null);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
     const email = useRef(null);
     const password = useRef(null);
+    const name = useRef(null);
 
     const toggleSignInForm = () => {
         setSignInForm(!isSignInForm)
@@ -26,7 +32,19 @@ const Login = () => {
         .then((userCredential) => {
           // Signed up 
           const user = userCredential.user;
-          console.log(user);
+         
+            updateProfile(user, {
+                displayName: name.current.value, photoURL: "https://avatars.githubusercontent.com/u/15454886?s=400&v=4"
+            }).then(() => {
+                const {uid,email,displayName,photoURL } = auth.currentUser;
+                dispatch(
+                   dispatch(addUser({uid:uid, email :email, displayName:displayName,photoURL: photoURL }))
+                )
+
+                navigate("/browse")
+            }).catch((error) => {
+               setErrorMessage(errorMessage);
+            });
      
         })
         .catch((error) => {
@@ -42,6 +60,7 @@ const Login = () => {
                 // Signed in 
                 const user = userCredential.user;
                 console.log(user);
+                navigate("/browse")
             })
             .catch((error) => {
                 const errorCode = error.code;
@@ -63,7 +82,7 @@ const Login = () => {
             </div>
             <form  onSubmit={(e)=> e.preventDefault()} className="w-3/12 absolute p-12 bg-black my-36 mx-auto right-0 left-0 text-white bg-opacity-90">
                 <h1 className="font-bold text-3xl py-4">{isSignInForm ? "Sign In" : " Sign Up"}</h1>
-                {!isSignInForm && (<input type="text" placeholder="Full Name"
+                {!isSignInForm && (<input type="text" ref={name} placeholder="Full Name"
                     className="p-4 my-4 w-full bg-gray-700" />)}
                 <input type="text" ref={email} placeholder="Email Address"
                     className="p-4 my-4 w-full bg-gray-700" />
